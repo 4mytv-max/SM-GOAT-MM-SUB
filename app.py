@@ -72,8 +72,6 @@ IMDB_RE = re.compile(r"^(tt\d+)")
 
 def _cors(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"
-    resp.headers["Access-Control-Allow-Headers"] = "*"
-    resp.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
     return resp
 
 
