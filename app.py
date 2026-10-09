@@ -79,11 +79,13 @@ def _cors(resp):
 
 @app.route("/manifest.json")
 def manifest():
+    base = request.url_root.rstrip("/")
     return _cors(jsonify({
         "id": "org.sm.simple.sub",
         "version": "1.0.0",
         "name": "SM GOAT+MM SUB",
         "description": "Malayalam subtitles: Team GOAT + Movie Mirror.",
+        "logo": f"{base}/static/logo.png",
         "resources": ["subtitles"],
         "types": ["movie", "series"],
         "idPrefixes": ["tt"],
