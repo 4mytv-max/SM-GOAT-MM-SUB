@@ -104,7 +104,7 @@ def subtitles(vtype, rid):
     for e in BY_IMDB.get(imdb, []):
         lang = "Malayalam (Team GOAT)" if e['src'] == "goat" else "Malayalam (Movie Mirror)"
         out.append({
-            "id": f"sm:{e['src']}:{imdb}",
+            "id": f"sm-{e['src']}-{imdb}",
             "url": f"{base}/srt/{e['key']}.srt",
             "lang": lang,
         })
