@@ -102,10 +102,11 @@ def subtitles(vtype, rid):
     base = request.url_root.rstrip("/")
     out = []
     for e in BY_IMDB.get(imdb, []):
+        lang = "Malayalam (Team GOAT)" if e['src'] == "goat" else "Malayalam (Movie Mirror)"
         out.append({
             "id": f"sm:{e['src']}:{imdb}",
             "url": f"{base}/srt/{e['key']}.srt",
-            "lang": "mal",
+            "lang": lang,
         })
     return _cors(jsonify({"subtitles": out}))
 
