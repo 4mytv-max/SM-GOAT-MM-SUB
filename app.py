@@ -77,6 +77,13 @@ def _cors(resp):
     return resp
 
 
+@app.before_request
+def handle_options():
+    if request.method == "OPTIONS":
+        resp = Response("")
+        return _cors(resp)
+
+
 @app.route("/manifest.json")
 def manifest():
     return _cors(jsonify({
