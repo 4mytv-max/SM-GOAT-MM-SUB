@@ -82,7 +82,7 @@ def manifest():
     return _cors(jsonify({
         "id": "org.sm.simple.sub",
         "version": "1.0.0",
-        "name": "SM Simple Sub",
+        "name": "SM GOAT+MM SUB",
         "description": "Malayalam subtitles: Team GOAT + Movie Mirror.",
         "resources": ["subtitles"],
         "types": ["movie", "series"],
