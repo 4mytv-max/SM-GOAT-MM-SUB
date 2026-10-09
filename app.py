@@ -85,9 +85,9 @@ def handle_options():
 @app.route("/manifest.json")
 def manifest():
     return _cors(jsonify({
-        "id": "org.sm.simple.sub",
-        "version": "1.0.1",
-        "name": "SM GOAT+MM SUB",
+        "id": "community.sm.goatmm.subtitles",
+        "version": "1.0.2",
+        "name": "SM GOAT+MM SUB v2",
         "description": "Malayalam subtitles: Team GOAT + Movie Mirror.",
         "resources": ["subtitles"],
         "types": ["movie", "series"],
