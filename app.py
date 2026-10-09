@@ -105,8 +105,10 @@ def subtitles(vtype, rid):
     base = request.url_root.rstrip("/")
     out = []
     for e in BY_IMDB.get(imdb, []):
+        # Match third-party ID format exactly: goat-tt123 or moviemirror-tt123
+        prefix = "goat" if e['src'] == "goat" else "moviemirror"
         out.append({
-            "id": f"sm-{e['src']}-{imdb}",
+            "id": f"{prefix}-{imdb}",
             "url": f"{base}/srt/{e['key']}.srt",
             "lang": "Malayalam",
         })
