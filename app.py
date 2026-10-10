@@ -4,12 +4,16 @@
 Design notes (from TV investigation, Oct 2026):
 - Manifest served at ROOT (/manifest.json), not a subpath — TV clients
   handle root manifests more reliably.
-- Single subtitle entry per source with "lang": "mal" (like the official
-  Msone addon). No duplicate entries, no descriptive lang strings.
+- Subtitle entries use descriptive lang labels "Malayalam (Team GOAT)" /
+  "Malayalam (Movie Mirror)" (same style as the TV-working third-party
+  addon). Key order id/url/lang matches it too.
+- JSON responses carry "Content-Type: application/json; charset=utf-8"
+  (like the TV-working addon), not bare "application/json".
 - /subtitles answers from a prebuilt in-memory index — no external HTTP
   calls in the hot path, so responses are fast (<100ms warm).
 - SRT files are proxied through /srt/<key>.srt with a browser User-Agent
-  (Movie Mirror blocks non-browser agents) and cached to disk.
+  (Movie Mirror blocks non-browser agents), normalized to CRLF line
+  endings (strict TV SRT parsers expect CRLF), and cached to disk.
 - CORS: Access-Control-Allow-Origin: * on every response.
 """
 import json
@@ -17,7 +21,7 @@ import os
 import re
 import urllib.request
 
-from flask import Flask, Response, jsonify, request
+from flask import Flask, Response, request
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(APP_DIR, "data")
@@ -75,6 +79,16 @@ def _cors(resp):
     return resp
 
 
+def _json(data, status=200):
+    """JSON response with explicit charset (matches TV-working addon)."""
+    resp = Response(
+        json.dumps(data, ensure_ascii=False),
+        status=status,
+        content_type="application/json; charset=utf-8",
+    )
+    return _cors(resp)
+
+
 @app.before_request
 def handle_options():
     if request.method == "OPTIONS":
@@ -84,9 +98,9 @@ def handle_options():
 
 @app.route("/manifest.json")
 def manifest():
-    return _cors(jsonify({
+    return _json({
         "id": "community.sm.goatmm.subtitles",
-        "version": "1.0.3",
+        "version": "1.0.4",
         "name": "SM SUB FRESH",
         "description": "Malayalam subtitles: Team GOAT + Movie Mirror.",
         "resources": ["subtitles"],
@@ -94,7 +108,7 @@ def manifest():
         "catalogs": [],
         "idPrefixes": ["tt"],
         "behaviorHints": {"configurable": False},
-    }))
+    })
 
 
 @app.route("/subtitles/<vtype>/<rid>.json")
@@ -105,14 +119,17 @@ def subtitles(vtype, rid):
     base = request.url_root.rstrip("/")
     out = []
     for e in BY_IMDB.get(imdb, []):
-        # Match third-party ID format exactly: goat-tt123 or moviemirror-tt123
+        # Match third-party ID/label format exactly: goat-tt123 /
+        # "Malayalam (Team GOAT)", moviemirror-tt123 / "Malayalam (Movie Mirror)"
         prefix = "goat" if e['src'] == "goat" else "moviemirror"
+        label = ("Malayalam (Team GOAT)" if e['src'] == "goat"
+                 else "Malayalam (Movie Mirror)")
         out.append({
             "id": f"{prefix}-{imdb}",
             "url": f"{base}/srt/{e['key']}.srt",
-            "lang": "Malayalam",
+            "lang": label,
         })
-    return _cors(jsonify({"subtitles": out}))
+    return _json({"subtitles": out})
 
 
 def _download(url):
@@ -121,11 +138,20 @@ def _download(url):
         return r.read()
 
 
+def _to_crlf(data: bytes) -> bytes:
+    """Normalize subtitle line endings to CRLF.
+
+    Strict SRT parsers (some TV players) expect CRLF; sources sometimes
+    serve lone LF. Normalize lone LF -> CRLF without doubling existing CRLF.
+    """
+    return data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+
+
 @app.route("/srt/<key>.srt")
 def serve_srt(key):
     entry = BY_KEY.get(key)
     if not entry:
-        return _cors(jsonify({"error": "not found"})), 404
+        return _json({"error": "not found"}, status=404)
     cache_path = os.path.join(CACHE_DIR, key + ".srt")
     if os.path.exists(cache_path):
         with open(cache_path, "rb") as f:
@@ -135,11 +161,12 @@ def serve_srt(key):
             data = _download(entry["url"])
         except Exception as exc:  # noqa: BLE001
             print(f"[srt] download failed {key}: {exc}", flush=True)
-            return _cors(jsonify({"error": "download failed"})), 502
+            return _json({"error": "download failed"}, status=502)
         head = data[:200]
         if b"-->" not in head and b"WEBVTT" not in head:
             print(f"[srt] bad content {key}: {head[:60]!r}", flush=True)
-            return _cors(jsonify({"error": "bad subtitle file"})), 502
+            return _json({"error": "bad subtitle file"}, status=502)
+        data = _to_crlf(data)
         try:
             with open(cache_path, "wb") as f:
                 f.write(data)
