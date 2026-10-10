@@ -86,8 +86,8 @@ def handle_options():
 def manifest():
     return _cors(jsonify({
         "id": "community.sm.goatmm.subtitles",
-        "version": "1.0.2",
-        "name": "SM GOAT+MM SUB v2",
+        "version": "1.0.3",
+        "name": "SM SUB FRESH",
         "description": "Malayalam subtitles: Team GOAT + Movie Mirror.",
         "resources": ["subtitles"],
         "types": ["movie", "series"],
@@ -145,7 +145,7 @@ def serve_srt(key):
                 f.write(data)
         except OSError:
             pass
-    return _cors(Response(data, mimetype="text/plain"))
+    return _cors(Response(data, content_type="application/x-subrip;charset=utf-8"))
 
 
 @app.route("/")
